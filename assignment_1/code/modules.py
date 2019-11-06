@@ -26,9 +26,8 @@ class LinearModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    self.params = {'weight': None, 'bias': None}
-    self.grads = {'weight': None, 'bias': None}
-    raise NotImplementedError
+    self.params = {'weight': np.random.normal(0, 0.0001, [in_features, out_features]), 'bias': np.zeros(out_features)}
+    self.grads = {'weight': np.zeros([in_features, out_features]), 'bias': np.zeros(out_features)}
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -51,7 +50,7 @@ class LinearModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    out = np.dot(params{'weight'} * x) + params{'bias'}
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -100,7 +99,7 @@ class LeakyReLUModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    self.params = {'alpha': neg_slope}
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -123,7 +122,7 @@ class LeakyReLUModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    out = np.maximum(np.zeros(x.shape()),x) + alpha * np.minimum(np.zeros(x.shape()), x)
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -177,7 +176,8 @@ class SoftMaxModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    max_value = np.maximum(x)
+    out = np.divide(np.exp(x - max_value), np.sum(np.exp(x - max_value)))
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -227,7 +227,7 @@ class CrossEntropyModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    out = - np.log(x[np.argmax(y)])
     ########################
     # END OF YOUR CODE    #
     #######################
