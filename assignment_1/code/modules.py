@@ -50,7 +50,7 @@ class LinearModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    out = np.dot(params{'weight'} * x) + params{'bias'}
+    out = np.dot(self.params['weight'], x) + self.params['bias']
     ########################
     # END OF YOUR CODE    #
     #######################

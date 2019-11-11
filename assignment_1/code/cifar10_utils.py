@@ -218,6 +218,7 @@ def read_data_sets(data_dir, one_hot = True, validation_size = 0):
   return {'train': train, 'validation': validation, 'test': test}
 
 def get_cifar10(data_dir = CIFAR10_FOLDER, one_hot = True, validation_size = 0):
+  # type: (object, object, object) -> object
   """
   Prepares CIFAR10 dataset.
   Args:

@@ -11,6 +11,9 @@ import numpy as np
 import os
 from mlp_pytorch import MLP
 import cifar10_utils
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
@@ -25,6 +28,8 @@ DATA_DIR_DEFAULT = './cifar10/cifar-10-batches-py'
 
 FLAGS = None
 
+SIZE_INPUT = 3 * 32 * 32
+SIZE_OUTPUT = 10
 def accuracy(predictions, targets):
   """
   Computes the prediction accuracy, i.e. the average of correct predictions
@@ -46,7 +51,7 @@ def accuracy(predictions, targets):
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  raise NotImplementedError
+  accuracy = np.sum((predictions * targets)) / len(predictions)
   ########################
   # END OF YOUR CODE    #
   #######################
@@ -79,7 +84,31 @@ def train():
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  raise NotImplementedError
+  #load cifar data
+  cifar10 = cifar10_utils.get_cifar10(DATA_DIR_DEFAULT)
+
+  x, y = cifar10['train'].next_batch(BATCH_SIZE_DEFAULT)
+  x = x.reshape(-1, SIZE_INPUT)
+
+  n_classes = SIZE_OUTPUT
+  # initialize network
+  net = MLP(SIZE_INPUT, dnn_hidden_units, n_classes, neg_slope)
+  loss_module = nn.CrossEntropyLoss()
+  optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE_DEFAULT)
+  #test for 2 epochs
+  print(cifar10['train'].epochs_completed)
+  while cifar10['train'].epochs_completed < 2:
+    optimizer.zero_grad()
+    x, y = cifar10['train'].next_batch(BATCH_SIZE_DEFAULT)
+    x = x.reshape(-1, SIZE_INPUT)
+    print(x.shape())
+    out = net.forward(x)
+    loss = loss_module(out, y)
+    loss.backward()
+    optimizer.step()
+
+
+
   ########################
   # END OF YOUR CODE    #
   #######################

@@ -37,11 +37,11 @@ class MLP(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    input_hidden = LinearModule(n_inputs, n_hidden[0])
-    hidden = LeakyReLUModule(neg_slope)
-    hidden_out = LinearModule(n_hidden[-1], n_classes)
-    softmax = SoftMaxModule()
-    loss = CrossEntropyModule()
+    self.input_hidden = modules.LinearModule(n_inputs, n_hidden[0])
+    self.hidden = modules.LeakyReLUModule(neg_slope)
+    self.hidden_out = modules.LinearModule(n_hidden[-1], n_classes)
+    self.softmax = modules.SoftMaxModule()
+    self.loss = modules.CrossEntropyModule()
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -63,7 +63,11 @@ class MLP(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    x = self.input_hidden.forward(x)
+    x = self.hidden.forward(x)
+    x = self.hidden_out.forward(x)
+    x = self.softmax(x)
+    x = self.loss(x, t)
     ########################
     # END OF YOUR CODE    #
     #######################

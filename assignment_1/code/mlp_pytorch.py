@@ -5,6 +5,9 @@ You should fill in code into indicated sections.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 class MLP(nn.Module):
   """
@@ -35,7 +38,27 @@ class MLP(nn.Module):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+
+    #go through all the hidden layers
+    n_in = []
+    n_out = []
+    for i in range(len(n_hidden)):
+      if i == 0:
+        n_in.append(n_inputs)
+      else:
+        n_in.append(n_hidden[i-1])
+
+      if i == len(n_hidden)-1:
+        n_out.append(n_classes)
+      else:
+        n_out.append(n_hidden[i+1])
+
+    #fix error AttributeError: cannot assign module before Module.__init__() call
+    super(MLP, self).__init__()
+    #use nn internal sequential
+    self.hidden = nn.ModuleList([nn.Linear(n_in[i], n_out[i]) for i in range(len(n_hidden))])
+
+    self.relu = {"neg_slope": neg_slope}
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -57,7 +80,9 @@ class MLP(nn.Module):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    for i in range(len(self.hidden)-1):
+      x = F.leaky_relu(self.hidden[i](x), self.relu["neg_slope"] )
+    out = F.softmax(x)
     ########################
     # END OF YOUR CODE    #
     #######################
