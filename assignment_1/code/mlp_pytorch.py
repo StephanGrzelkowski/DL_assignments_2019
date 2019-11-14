@@ -42,23 +42,23 @@ class MLP(nn.Module):
     #go through all the hidden layers
     n_in = []
     n_out = []
-    for i in range(len(n_hidden)):
+    for i in range(len(n_hidden) + 1):
       if i == 0:
         n_in.append(n_inputs)
       else:
         n_in.append(n_hidden[i-1])
 
-      if i == len(n_hidden)-1:
+      if i == len(n_hidden):
         n_out.append(n_classes)
       else:
-        n_out.append(n_hidden[i+1])
+        n_out.append(n_hidden[i])
 
     #fix error AttributeError: cannot assign module before Module.__init__() call
     super(MLP, self).__init__()
     #use nn internal sequential
-    self.hidden = nn.ModuleList([nn.Linear(n_in[i], n_out[i]) for i in range(len(n_hidden))])
+    self.hidden = nn.ModuleList([nn.Linear(n_in[i], n_out[i]) for i in range(len(n_hidden)+1)])
 
-    self.relu = {"neg_slope": neg_slope}
+    self.neg_slope = neg_slope
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -80,9 +80,15 @@ class MLP(nn.Module):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
+
+    #compute activity of all hidden units
     for i in range(len(self.hidden)-1):
-      x = F.leaky_relu(self.hidden[i](x), self.relu["neg_slope"] )
-    out = F.softmax(x)
+      x = F.leaky_relu(self.hidden[i](x), self.neg_slope )
+    #from last hidden to output layer
+    x = self.hidden[-1](x)
+
+    #softmax
+    out = F.softmax(x, 1)
     ########################
     # END OF YOUR CODE    #
     #######################

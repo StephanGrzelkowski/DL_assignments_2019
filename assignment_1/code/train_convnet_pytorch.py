@@ -11,6 +11,7 @@ import numpy as np
 import os
 from convnet_pytorch import ConvNet
 import cifar10_utils
+import utils_custom
 
 # Default constants
 LEARNING_RATE_DEFAULT = 1e-4
@@ -45,7 +46,7 @@ def accuracy(predictions, targets):
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  raise NotImplementedError
+  utils_custom.accuracy(predictions, targets)
   ########################
   # END OF YOUR CODE    #
   #######################

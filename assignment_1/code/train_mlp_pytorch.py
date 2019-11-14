@@ -14,6 +14,10 @@ import cifar10_utils
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import utils_custom
+
+#do we wanna make new plots?
+OPT_PLOT = True
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
@@ -51,7 +55,8 @@ def accuracy(predictions, targets):
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  accuracy = np.sum((predictions * targets)) / len(predictions)
+  accuracy = utils_custom.accuracy(predictions, targets)
+
   ########################
   # END OF YOUR CODE    #
   #######################
@@ -87,28 +92,83 @@ def train():
   #load cifar data
   cifar10 = cifar10_utils.get_cifar10(DATA_DIR_DEFAULT)
 
-  x, y = cifar10['train'].next_batch(BATCH_SIZE_DEFAULT)
-  x = x.reshape(-1, SIZE_INPUT)
 
   n_classes = SIZE_OUTPUT
+
+  #load test data
+  x_test, y_test = cifar10['test'].images, cifar10['test'].labels
+  x_test = torch.from_numpy(x_test).reshape((-1, SIZE_INPUT))
+  y_test = torch.from_numpy(y_test).type(torch.long)
+  y_test = torch.max(y_test, 1)[1]
+  
   # initialize network
   net = MLP(SIZE_INPUT, dnn_hidden_units, n_classes, neg_slope)
   loss_module = nn.CrossEntropyLoss()
   optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE_DEFAULT)
+
+  #
+  train_losses = []
+  test_losses = []
+  train_accuracies = []
+  test_accuracies = []
+
   #test for 2 epochs
-  print(cifar10['train'].epochs_completed)
-  while cifar10['train'].epochs_completed < 2:
+  epoch = 0
+  eval_steps = []
+  while epoch < MAX_STEPS_DEFAULT:
+    #Track epochs
+    if (epoch % 10) == 0:
+      print("Current epoch: " + str(epoch))
+
+    #reset gradients
     optimizer.zero_grad()
     x, y = cifar10['train'].next_batch(BATCH_SIZE_DEFAULT)
-    x = x.reshape(-1, SIZE_INPUT)
-    print(x.shape())
+    x = torch.from_numpy(x).reshape((BATCH_SIZE_DEFAULT, SIZE_INPUT)) #THIS MIGHT BE WRONG
+    y = torch.from_numpy(y).type(torch.long)
+
+    #transform from one-hot
+    y = torch.max(y, 1)[1]
     out = net.forward(x)
+
     loss = loss_module(out, y)
+
+    #compute gradient and update weights
     loss.backward()
     optimizer.step()
 
+    epoch += 1
 
 
+    #check if accuracy needs to be evaluated:
+    if (epoch % EVAL_FREQ_DEFAULT) == 0:
+      eval_steps.append(epoch)
+      print("Evaluating at epoch: " + str(epoch))
+
+      accuracy_train = accuracy(out, y)
+      train_accuracies.append(accuracy_train)
+      print("training accuracy: ")
+      print(accuracy_train)
+
+      train_losses.append(loss.data.numpy())
+      print(train_losses)
+      out = net.forward(x_test)
+
+
+      loss_test = loss_module(out, y_test)
+
+      print("loss Test: ")
+      print(loss_test)
+      val_loss_test = loss_test.data.cpu().numpy()
+      test_losses.append(val_loss_test)
+
+      accuracy_test = accuracy(out, y_test)
+      print("Testing accuracy: ")
+      print(accuracy_test)
+      test_accuracies.append(accuracy_test)
+
+
+  if OPT_PLOT:
+    utils_custom.plot_accuracies(train_losses, train_accuracies, test_losses, test_accuracies, eval_steps)
   ########################
   # END OF YOUR CODE    #
   #######################
