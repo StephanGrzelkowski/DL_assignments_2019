@@ -16,24 +16,27 @@ import torch.nn as nn
 import torch.optim as optim
 import utils_custom
 
-#do we wanna make new plots?
-OPT_PLOT = True
+
 
 # Default constants
-DNN_HIDDEN_UNITS_DEFAULT = '100'
-LEARNING_RATE_DEFAULT = 2e-3
-MAX_STEPS_DEFAULT = 1500
-BATCH_SIZE_DEFAULT = 200
-EVAL_FREQ_DEFAULT = 100
-NEG_SLOPE_DEFAULT = 0.02
+DNN_HIDDEN_UNITS_DEFAULT = '100' #'100'
+LEARNING_RATE_DEFAULT = 2e-3 #
+MAX_STEPS_DEFAULT = 1500 #1500
+BATCH_SIZE_DEFAULT = 200 #200
+EVAL_FREQ_DEFAULT = 100 #100
+NEG_SLOPE_DEFAULT = 0.02 #0.02
 
 # Directory in which cifar data is saved
 DATA_DIR_DEFAULT = './cifar10/cifar-10-batches-py'
 
 FLAGS = None
 
+#do we wanna make new plots?
+OPT_PLOT = True
 SIZE_INPUT = 3 * 32 * 32
 SIZE_OUTPUT = 10
+save_dir = './../../../saveData/'
+
 def accuracy(predictions, targets):
   """
   Computes the prediction accuracy, i.e. the average of correct predictions
@@ -89,47 +92,50 @@ def train():
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  #load cifar data
-  cifar10 = cifar10_utils.get_cifar10(DATA_DIR_DEFAULT)
-
-
   n_classes = SIZE_OUTPUT
+  learning_rate = FLAGS.learning_rate
+  max_steps = FLAGS.max_steps
+  batch_size = FLAGS.batch_size
+  eval_freq = FLAGS.eval_freq
+  data_dir = FLAGS.data_dir
+
+  # load cifar data
+  cifar10 = cifar10_utils.get_cifar10(data_dir, one_hot=False)
 
   #load test data
   x_test, y_test = cifar10['test'].images, cifar10['test'].labels
-  x_test = torch.from_numpy(x_test).reshape((-1, SIZE_INPUT))
-  y_test = torch.from_numpy(y_test).type(torch.long)
-  y_test = torch.max(y_test, 1)[1]
-  
+  x_test = torch.tensor(x_test).reshape((-1, SIZE_INPUT))
+  y_test = torch.tensor(y_test).type(torch.long)
+
+
   # initialize network
   net = MLP(SIZE_INPUT, dnn_hidden_units, n_classes, neg_slope)
   loss_module = nn.CrossEntropyLoss()
-  optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE_DEFAULT)
+  optimizer = optim.Adam(net.parameters(), lr=learning_rate)
 
-  #
+  #initialize lists
   train_losses = []
   test_losses = []
   train_accuracies = []
   test_accuracies = []
 
-  #test for 2 epochs
   epoch = 0
   eval_steps = []
-  while epoch < MAX_STEPS_DEFAULT:
-    #Track epochs
-    if (epoch % 10) == 0:
-      print("Current epoch: " + str(epoch))
-
+  while epoch < max_steps:
     #reset gradients
     optimizer.zero_grad()
-    x, y = cifar10['train'].next_batch(BATCH_SIZE_DEFAULT)
-    x = torch.from_numpy(x).reshape((BATCH_SIZE_DEFAULT, SIZE_INPUT)) #THIS MIGHT BE WRONG
-    y = torch.from_numpy(y).type(torch.long)
 
-    #transform from one-hot
-    y = torch.max(y, 1)[1]
+    #get next batch
+    x, y = cifar10['train'].next_batch(batch_size)
+
+    x = torch.tensor(x, requires_grad=True).reshape((batch_size, SIZE_INPUT)) #THIS MIGHT BE WRONG
+    y = torch.tensor(y, dtype=torch.long)
+
+
+    #run forward
     out = net.forward(x)
 
+    #compute loss
     loss = loss_module(out, y)
 
     #compute gradient and update weights
@@ -137,7 +143,6 @@ def train():
     optimizer.step()
 
     epoch += 1
-
 
     #check if accuracy needs to be evaluated:
     if (epoch % EVAL_FREQ_DEFAULT) == 0:
@@ -150,25 +155,24 @@ def train():
       print(accuracy_train)
 
       train_losses.append(loss.data.numpy())
-      print(train_losses)
-      out = net.forward(x_test)
 
+      out_test = net.forward(x_test)
+      loss_test = loss_module(out_test, y_test)
 
-      loss_test = loss_module(out, y_test)
-
-      print("loss Test: ")
-      print(loss_test)
       val_loss_test = loss_test.data.cpu().numpy()
       test_losses.append(val_loss_test)
 
-      accuracy_test = accuracy(out, y_test)
+      accuracy_test = accuracy(out_test, y_test)
       print("Testing accuracy: ")
       print(accuracy_test)
       test_accuracies.append(accuracy_test)
 
 
   if OPT_PLOT:
-    utils_custom.plot_accuracies(train_losses, train_accuracies, test_losses, test_accuracies, eval_steps)
+    str_save = 'mlp_pytorch_run1'
+
+    utils_custom.plot_accuracies(train_losses, train_accuracies, test_losses, test_accuracies, eval_steps, str_save, save_dir, FLAGS)
+    utils_custom.save_results(train_losses, train_accuracies, test_losses, test_accuracies, str_save, save_dir, FLAGS)
   ########################
   # END OF YOUR CODE    #
   #######################

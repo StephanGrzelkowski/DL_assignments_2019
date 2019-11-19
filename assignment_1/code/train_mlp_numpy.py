@@ -12,11 +12,13 @@ import os
 from mlp_numpy import MLP
 from modules import CrossEntropyModule
 import cifar10_utils
+import utils_custom
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
 LEARNING_RATE_DEFAULT = 2e-3
-MAX_STEPS_DEFAULT = 1500
+MAX_STEPS_DEFAULT = 1 #1500
+MAX_STEPS_DEFAULT = 1 #1500
 BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
 NEG_SLOPE_DEFAULT = 0.02
@@ -25,6 +27,14 @@ NEG_SLOPE_DEFAULT = 0.02
 DATA_DIR_DEFAULT = './cifar10/cifar-10-batches-py'
 
 FLAGS = None
+
+
+#do we wanna make new plots?
+OPT_PLOT = True
+SIZE_INPUT = 3 * 32 * 32
+SIZE_OUTPUT = 10
+save_dir = './../../../saveData/'
+
 
 def accuracy(predictions, targets):
   """
@@ -47,7 +57,7 @@ def accuracy(predictions, targets):
   ########################
   # PUT YOUR CODE HERE  #
   #######################
-  raise NotImplementedError
+  utils_custom.accuracy(predictions, targets)
   ########################
   # END OF YOUR CODE    #
   #######################
@@ -80,7 +90,80 @@ def train():
   ########################
   # PUT YOUR CODE HERE  #
   #######################
+  n_classes = SIZE_OUTPUT
+  learning_rate = FLAGS.learning_rate
+  max_steps = FLAGS.max_steps
+  batch_size = FLAGS.batch_size
+  eval_freq = FLAGS.eval_freq
+  data_dir = FLAGS.data_dir
 
+  # load cifar data
+  cifar10 = cifar10_utils.get_cifar10(data_dir)
+
+  # load test data
+  x_test, y_test = cifar10['test'].images, cifar10['test'].labels
+  x_test = x_test.reshape((-1, SIZE_INPUT))
+
+
+  # initialize network
+  net = MLP(SIZE_INPUT, dnn_hidden_units, n_classes, neg_slope)
+
+  # initialize lists
+  train_losses = []
+  test_losses = []
+  train_accuracies = []
+  test_accuracies = []
+
+  epoch = 0
+  eval_steps = []
+  while epoch < max_steps:
+    # reset gradients
+
+
+    # get next batch
+    x, y = cifar10['train'].next_batch(batch_size)
+
+    x = x.reshape((batch_size, SIZE_INPUT))  # THIS MIGHT BE WRONG
+
+    # run forward
+    out = net.forward(x)
+
+    # compute loss
+    loss = loss_module(out, y)
+
+    """ COMPUTE GRADIENT AND UPDATE"""
+
+    epoch += 1
+
+    # check if accuracy needs to be evaluated:
+    if (epoch % EVAL_FREQ_DEFAULT) == 0:
+      eval_steps.append(epoch)
+      print("Evaluating at epoch: " + str(epoch))
+
+      accuracy_train = accuracy(out, y)
+      train_accuracies.append(accuracy_train)
+      print("training accuracy: ")
+      print(accuracy_train)
+
+      train_losses.append(loss.data.numpy())
+
+      out_test = net.forward(x_test)
+      loss_test = loss_module(out_test, y_test)
+
+      val_loss_test = loss_test.data.cpu().numpy()
+      test_losses.append(val_loss_test)
+
+      accuracy_test = accuracy(out_test, y_test)
+      print("Testing accuracy: ")
+      print(accuracy_test)
+      test_accuracies.append(accuracy_test)
+
+  if OPT_PLOT:
+    str_save = 'mlp_pytorch_run1'
+
+    utils_custom.plot_accuracies(train_losses, train_accuracies, test_losses, test_accuracies, eval_steps, str_save,
+                                 save_dir, FLAGS)
+    utils_custom.save_results(train_losses, train_accuracies, test_losses, test_accuracies, str_save, save_dir, FLAGS)
   ########################
   # END OF YOUR CODE    #
   #######################

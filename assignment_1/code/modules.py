@@ -51,6 +51,7 @@ class LinearModule(object):
     # PUT YOUR CODE HERE  #
     #######################
     out = np.dot(self.params['weight'], x) + self.params['bias']
+    self.activations = x
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -74,7 +75,12 @@ class LinearModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    #gradients for the param updates:
+    self.grads['weight'] = dout.T @ self.activations
+    self.grads['bias'] = np.sum(dout, axis=0)
+
+    #for propagating back
+    dx = dout @ self.params['Weight']
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -122,7 +128,8 @@ class LeakyReLUModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    out = np.maximum(np.zeros(x.shape()),x) + alpha * np.minimum(np.zeros(x.shape()), x)
+    out = np.maximum(np.zeros(x.shape()),x) + self.alpha * np.minimum(np.zeros(x.shape()), x)
+    self.activations = x
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -145,7 +152,10 @@ class LeakyReLUModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    pos = (self.activations >= 0).astype(int)
+    neg = (self.activations < 0).astype(int)
+
+    dx = np.multiply(np.multiply(pos, neg*self.params['alpha']) , dout)
     ########################
     # END OF YOUR CODE    #
     #######################    
@@ -178,6 +188,9 @@ class SoftMaxModule(object):
     #######################
     max_value = np.maximum(x)
     out = np.divide(np.exp(x - max_value), np.sum(np.exp(x - max_value)))
+
+    self.activations = x
+    self.out = out
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -199,7 +212,8 @@ class SoftMaxModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    #NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+    dx = dout
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -227,7 +241,7 @@ class CrossEntropyModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    out = - np.log(x[np.argmax(y)])
+    out = - np.mean(np.sum(np.log(x[np.argmax(y)])))
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -250,7 +264,7 @@ class CrossEntropyModule(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    dx = -np.divide(y, x) / np.shape(x)[0]
     ########################
     # END OF YOUR CODE    #
     #######################

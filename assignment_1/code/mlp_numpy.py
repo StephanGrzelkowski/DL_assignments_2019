@@ -6,7 +6,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from modules import * 
+from modules import *
 
 class MLP(object):
   """
@@ -37,11 +37,19 @@ class MLP(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    self.input_hidden = modules.LinearModule(n_inputs, n_hidden[0])
-    self.hidden = modules.LeakyReLUModule(neg_slope)
-    self.hidden_out = modules.LinearModule(n_hidden[-1], n_classes)
+    hidden = []
+    n_in = n_inputs
+    n_out = n_hidden[0]
+    for it in range(len(n_hidden)):
+      hidden.append(modules.LinearModule(n_in, n_out))
+      hidden.append(modules.LeakyReLUModule(neg_slope))
+
+      if not(it == len(n_hidden)-1):
+        n_in = n_out
+        n_out = n_hidden(it+1)
+
     self.softmax = modules.SoftMaxModule()
-    self.loss = modules.CrossEntropyModule()
+
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -63,11 +71,12 @@ class MLP(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    x = self.input_hidden.forward(x)
-    x = self.hidden.forward(x)
-    x = self.hidden_out.forward(x)
-    x = self.softmax(x)
-    x = self.loss(x, t)
+    #go through all hidden layers (incl relu)
+    for it in range(len(self.hidden)):
+      x = self.hidden[it](x)
+
+    out = self.softmax(x)
+
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -88,7 +97,12 @@ class MLP(object):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+
+    gradient = self.softmax.backward(dout)
+    for it in range(len(self.hidden)):
+      gradient = self.hidden[it].backward(gradient)
+
+    #as the modules save the gradients for training we don't need to do that here again.
     ########################
     # END OF YOUR CODE    #
     #######################

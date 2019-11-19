@@ -6,7 +6,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import torch.nn as nn
-import torch.Functional as F
+import torch.nn.functional as F
 
 class ConvNet(nn.Module):
   """
@@ -31,33 +31,37 @@ class ConvNet(nn.Module):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    self.conv1 = nn.Conv2d(n_channels, 64, 3)
+    super(ConvNet, self).__init__()
+
+    self.conv1 = nn.Conv2d(n_channels, 64, 3, padding=1)
     self.batchnorm1 = nn.BatchNorm2d(64)
-    self.maxpool1 = nn.MaxPool2d(3, stride=2)
+    self.maxpool1 = nn.MaxPool2d(3, stride=2, padding=1)
 
-    self.conv2 = nn.Conv2d(64, 128, 3)
+    self.conv2 = nn.Conv2d(64, 128, 3, padding=1)
     self.batchnorm2 = nn.BatchNorm2d(128)
-    self.maxpool2 = nn.MaxPool2d(3, stride=2)
+    self.maxpool2 = nn.MaxPool2d(3, stride=2, padding=1)
 
-    self.conv3_a = nn.Conv2d(128, 256, 3)
+    self.conv3_a = nn.Conv2d(128, 256, 3, padding=1)
     self.batchnorm3a = nn.BatchNorm2d(256)
-    self.conv3_b = nn.Conv2d(256, 256, 3)
+    self.conv3_b = nn.Conv2d(256, 256, 3, padding=1)
     self.batchnorm3b = nn.BatchNorm2d(256)
-    self.maxpool3 = nn.MaxPool2d(3, stride=2)
+    self.maxpool3 = nn.MaxPool2d(3, stride=2, padding=1)
 
-    self.conv4_a = nn.Conv2d(256, 512, 3)
+    self.conv4_a = nn.Conv2d(256, 512, 3, padding=1)
     self.batchnorm4a = nn.BatchNorm2d(512)
-    self.cond4_b = nn.Conv2d(512, 512, 3)
+    self.conv4_b = nn.Conv2d(512, 512, 3, padding=1)
     self.batchnorm4b = nn.BatchNorm2d(512)
-    self.maxpool4 = nn.MaxPool2d(3, stride=2)
+    self.maxpool4 = nn.MaxPool2d(3, stride=2, padding=1)
 
-    self.conv5_a = nn.Conv2d(512, 512, 3)
+    self.conv5_a = nn.Conv2d(512, 512, 3, padding=1)
     self.batchnorm5a = nn.BatchNorm2d(512)
-    self.conv5_b = nn.Conv2d(512, 512, 3)
+    self.conv5_b = nn.Conv2d(512, 512, 3, padding=1)
     self.batchnorm5b = nn.BatchNorm2d(512)
-    self.maxpool5 = nn.maxpool5(3, stride=2)
+    self.maxpool5 = nn.MaxPool2d(3, stride=2, padding=1)
 
     self.linear = nn.Linear(512, n_classes)
+
+    print(self)
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -91,9 +95,10 @@ class ConvNet(nn.Module):
     x = self.maxpool4(self.batchnorm4b(self.conv4_b(x)))
 
     x = F.relu(self.batchnorm5a(self.conv5_a(x)))
+
     x = self.maxpool5(self.batchnorm5b(self.conv5_b(x)))
 
-    out = self.linear(x)
+    out = self.linear(x.view(-1, 512))
 
     ########################
     # END OF YOUR CODE    #

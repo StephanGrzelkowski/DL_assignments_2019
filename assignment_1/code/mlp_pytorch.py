@@ -38,7 +38,6 @@ class MLP(nn.Module):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-
     #go through all the hidden layers
     n_in = []
     n_out = []
@@ -59,6 +58,7 @@ class MLP(nn.Module):
     self.hidden = nn.ModuleList([nn.Linear(n_in[i], n_out[i]) for i in range(len(n_hidden)+1)])
 
     self.neg_slope = neg_slope
+    print(self.hidden)
     ########################
     # END OF YOUR CODE    #
     #######################
@@ -87,8 +87,10 @@ class MLP(nn.Module):
     #from last hidden to output layer
     x = self.hidden[-1](x)
 
-    #softmax
-    out = F.softmax(x, 1)
+    #softmax took me way too long to think of log
+    out = F.log_softmax(x, 1)
+
+    #print(out.size())
     ########################
     # END OF YOUR CODE    #
     #######################
