@@ -26,9 +26,14 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+"""To run from part1 folder""" 
+import sys
+sys.path.append("..")
+
 from part1.dataset import PalindromeDataset
 from part1.vanilla_rnn import VanillaRNN
 from part1.lstm import LSTM
+
 
 # You may want to look into tensorboard for logging
 # from torch.utils.tensorboard import SummaryWriter
@@ -43,15 +48,15 @@ def train(config):
     device = torch.device(config.device)
 
     # Initialize the model that we are going to use
-    model = None  # fixme
+    model = vanilla_rnn(config.input_length, config.input_dim, config.num_hidden, config.num_classes, config.device)  # fixme
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
-    data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
+    data_loader = DataLoader(dataset, config.batch_size, num_workers=1) # what is num_worker
 
     # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
+    criterion = nn.CrossEntropyLoss()  # (fix me) Dear TA's I can't fix you, you should talk to a therapist, please
+    optimizer = nn.optim.RMSprop(model.parameters(), lr=config.learning_rate)  # (fixme), really please I am not qualified
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
@@ -59,6 +64,9 @@ def train(config):
         t1 = time.time()
 
         # Add more code here ...
+        
+        #reset optimizer
+        optimizer.zero_grad()
 
         ############################################################################
         # QUESTION: what happens here and why?
@@ -68,8 +76,15 @@ def train(config):
 
         # Add more code here ...
 
-        loss = np.inf   # fixme
-        accuracy = 0.0  # fixme
+        #get prediction, grads and update params
+        out = model( batch_inputs, batch_targets )
+        loss = criterion(out, batch_targets)   # (fixme) Your cries for help are getting distracting. I'm trying to finish this master succesfully
+        loss.backward()
+        optimizer.step()
+
+        accuracy = 0.0  # (fixme) Okay listen: you just gotta be okay with who you are. focues on improving day by day. take baby steps and sometimes take a breath to appreciate how far you have come
+
+        
 
         # Just for time measurement
         t2 = time.time()

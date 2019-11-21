@@ -43,26 +43,26 @@ class LSTM(nn.Module):
         #modulation gate
         self.modulation_gate = {}
         self.modulation_gate.params["w_x"] = torch.randn(num_cell, input_dim)
-  		self.modulation_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
-  		self.modulation_gate.params['b'] = torch.randn(num_cell)
+        self.modulation_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
+        self.modulation_gate.params['b'] = torch.randn(num_cell)
 
   		#input gate
         self.input_gate = {}
         self.input_gate.params["w_x"] = torch.randn(num_cell, input_dim)
-  		self.input_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
-  		self.input_gate.params['b'] = torch.randn(num_cell)
+        self.input_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
+        self.input_gate.params['b'] = torch.randn(num_cell)
   		
   		#forget gate
         self.forget_gate = {}
         self.forget_gate.params["w_x"] = torch.randn(num_cell, input_dim)
-  		self.forget_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
-  		self.forget_gate.params['b'] = torch.randn(num_cell)
+        self.forget_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
+        self.forget_gate.params['b'] = torch.randn(num_cell)
   		
   		#output gate 
-  		self.output_gate = {}
+        self.output_gate = {}
         self.output_gate.params["w_x"] = torch.randn(num_cell, input_dim)
-  		self.output_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
-  		self.output_gate.params['b'] = torch.randn(num_cell)
+        self.output_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
+        self.output_gate.params['b'] = torch.randn(num_cell)
   		
     def forward(self, x):
 
