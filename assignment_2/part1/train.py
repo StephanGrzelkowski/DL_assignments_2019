@@ -48,16 +48,20 @@ def train(config):
     device = torch.device(config.device)
 
     # Initialize the model that we are going to use
-    model = VanillaRNN(config.input_length, config.input_dim, config.num_hidden, config.num_classes, config.device)  # fixme
+    model = VanillaRNN(config.input_length, 
+                       config.input_dim, 
+                       config.num_hidden,
+                       config.num_classes, 
+                       device)  # fixme
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
     data_loader = DataLoader(dataset, config.batch_size, num_workers=1) # what is num_worker
 
     # Setup the loss and optimizer
-    criterion = nn.CrossEntropyLoss()  # (fix me) Dear TA's I can't fix you, you should talk to a therapist, please
-    optimizer = nn.optim.RMSprop(model.parameters(), lr=config.learning_rate)  # (fixme), really please I am not qualified
-
+    criterion = torch.nn.CrossEntropyLoss()  # (fix me) Dear TA's I can't fix you, you should talk to a therapist, please
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=config.learning_rate)  # (fixme), really please I am not qualified
+    print(model.parameters())
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
         # Only for time measurement of step through network
@@ -75,10 +79,15 @@ def train(config):
         ############################################################################
 
         # Add more code here ...
-
+        print(batch_inputs.size())
+        #put input on target device 
+        batch_inputs = batch_inputs.cuda(device)
+        batch_targets = batch_targets.cuda(device)
         #get prediction, grads and update params
-        out = model( batch_inputs, batch_targets )
+        out = model( batch_inputs )
+        print(out.size())
         loss = criterion(out, batch_targets)   # (fixme) Your cries for help are getting distracting. I'm trying to finish this master succesfully
+        print(loss)
         loss.backward()
         optimizer.step()
 

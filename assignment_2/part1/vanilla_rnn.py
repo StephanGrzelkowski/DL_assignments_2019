@@ -21,6 +21,7 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 
+
 ################################################################################
 
 class VanillaRNN(nn.Module):
@@ -29,30 +30,35 @@ class VanillaRNN(nn.Module):
         super(VanillaRNN, self).__init__()
         # Initialization here ...
         #init weight matrix for input
-        #self.hidden = {}
 
         self.register_parameter('w_in', nn.Parameter(torch.randn(num_hidden, input_dim, device=device)))
         self.register_parameter('w_h',  nn.Parameter(torch.randn(num_hidden, num_hidden, device=device)))
-        self.register_parameter('b_in', nn.Parameters(torch.randn(num_hidden, device=device))
+        self.register_parameter('b_in', nn.Parameter(torch.randn(num_hidden, device=device)))
 
         #init weight matrix for output
         self.register_parameter('w_out', nn.Parameter(torch.randn(num_classes, num_hidden, device=device)))
         self.register_parameter('b_out', nn.Parameter(torch.randn(num_hidden, device=device)))
 
         #initialize a starting state
-        self.hidden = torch.zeros(num_hidden, requres_grad=True, device=device)
+        self.hidden = torch.zeros(num_hidden, requires_grad=True, device=device)
         self.steps = seq_length
         print(self)
 
     def forward(self, x):
         # Implementation here ...
+        debug = True
         #update hidden state
         input_hidden = torch.matmul(self.w_h, x)
-        hidden_hidden = torch.matmul(self.w_h, self.state)
-        self.hidden = nn.functional.tanh( input_hidden + hidden_hidden + self.b_in)
+        hidden_hidden = torch.matmul(self.w_h, self.hidden)
+        if debug:
+            print("Input to hidden proj: ")
+            print(input_hidden.size())
+            print("hidden (t-1) to hidden: ")
+            print(hidden_hidden.size())
+        self.hidden = nn.functional.tanh(input_hidden + hidden_hidden + self.b_in)
         
         #calculate output
-        out = torch.matmul(self.state, self.w_out)  + self.hidden.b_out
+        out = torch.matmul(self.hidden, self.w_out)  + self.b_out
 
         return out
 
