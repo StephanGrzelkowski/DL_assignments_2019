@@ -67,16 +67,16 @@ class LSTM(nn.Module):
     def forward(self, x):
 
         # calculate all the gates
-        g = F.tanh(self.modulation_gate.params['w_x'] * x + self.modulation_gate.params['w_h'] * self.hidden.state + self.modulation_gate.params['b']) 
-        i = F.sigmoid(self.input_gate.params['w_x'] * x + self.input_gate.params['w_h'] * self.hidden.state, self.input_gate.params['b'])
-        f = F.sigmoid(self.forget_gate.params['w_x'] * x + self.forget_gate.params['w_h'] * self.hidden.state, self.forget_gate.params['b'])
-        o = F.sigmoid(self.output_gate.params['w_x'] * x + self.output_gate.params['w_h'] * self.hidden.state, self.output_gate.params['b'])
+        g = F.tanh(torch.matmul(self.modulation_gate.params['w_x'],  x) + torch.matmul(self.modulation_gate.params['w_h'], self.hidden.state) + self.modulation_gate.params['b']) 
+        i = F.sigmoid(torch.matmul(self.input_gate.params['w_x'] , x) + torch.matmul(self.input_gate.params['w_h'], self.hidden.state) +  self.input_gate.params['b'])
+        f = F.sigmoid(torch.matmul(self.forget_gate.params['w_x'], x) + torch.matmul(self.forget_gate.params['w_h'], self.hidden.state) +  self.forget_gate.params['b'])
+        o = F.sigmoid(torch.matmul(self.output_gate.params['w_x'], x) + torch.matmul(self.output_gate.params['w_h'], self.hidden.state) + self.output_gate.params['b'])
         
         #update cell state
-        self.cell.state = torch.matmul(g, i) + torch.matmul(self.cell.state, f)
+        self.cell.state = g * i + self.cell.state * f
         
         #update hidden state
-        self.hidden.state = torch.matmul(F.tanh(self.cell.state), o)
+        self.hidden.state = F.tanh(self.cell.state) * o 
 
         #get output
         p = self.hidden.params['w'] * self.hidden.state + self.hidden.params['b']

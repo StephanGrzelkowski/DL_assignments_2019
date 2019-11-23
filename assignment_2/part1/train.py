@@ -33,13 +33,13 @@ sys.path.append("..")
 from part1.dataset import PalindromeDataset
 from part1.vanilla_rnn import VanillaRNN
 from part1.lstm import LSTM
-
+import utils
 
 # You may want to look into tensorboard for logging
 # from torch.utils.tensorboard import SummaryWriter
 
 ################################################################################
-
+debug = False
 def train(config):
 
     assert config.model_type in ('RNN', 'LSTM')
@@ -64,6 +64,8 @@ def train(config):
     print(model.parameters())
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
+        if debug: 
+            print(('Input data 0: {0}; size: {1}').format(batch_inputs, batch_inputs.size()))
         # Only for time measurement of step through network
         t1 = time.time()
 
@@ -85,13 +87,13 @@ def train(config):
         batch_targets = batch_targets.cuda(device)
         #get prediction, grads and update params
         out = model( batch_inputs )
-        print(out.size())
+        
         loss = criterion(out, batch_targets)   # (fixme) Your cries for help are getting distracting. I'm trying to finish this master succesfully
         print(loss)
         loss.backward()
         optimizer.step()
 
-        accuracy = 0.0  # (fixme) Okay listen: you just gotta be okay with who you are. focues on improving day by day. take baby steps and sometimes take a breath to appreciate how far you have come
+        accuracy = utils.calc_accuracy(out, batch_targets)  # (fixme) Okay listen: you just gotta be okay with who you are. focues on improving day by day. take baby steps and sometimes take a breath to appreciate how far you have come
 
         
 

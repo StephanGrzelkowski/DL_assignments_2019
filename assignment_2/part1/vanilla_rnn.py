@@ -31,34 +31,59 @@ class VanillaRNN(nn.Module):
         # Initialization here ...
         #init weight matrix for input
 
-        self.register_parameter('w_in', nn.Parameter(torch.randn(num_hidden, input_dim, device=device)))
-        self.register_parameter('w_h',  nn.Parameter(torch.randn(num_hidden, num_hidden, device=device)))
-        self.register_parameter('b_in', nn.Parameter(torch.randn(num_hidden, device=device)))
+        self.register_parameter('w_in', nn.Parameter(torch.zeros(num_hidden, input_dim, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_in)
+        #print('w_in weights with xavier init: {0}, with size: {1}'.format(self.w_in, self.w_in.size()))
+        self.register_parameter('w_h',  nn.Parameter(torch.zeros(num_hidden, num_hidden, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_h)
+        self.register_parameter('b_in', nn.Parameter(torch.zeros(num_hidden, 1, device=device)))
 
         #init weight matrix for output
-        self.register_parameter('w_out', nn.Parameter(torch.randn(num_classes, num_hidden, device=device)))
-        self.register_parameter('b_out', nn.Parameter(torch.randn(num_hidden, device=device)))
+        self.register_parameter('w_out', nn.Parameter(torch.zeros(num_hidden, num_classes, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_out)
+        self.register_parameter('b_out', nn.Parameter(torch.zeros(num_classes, 1,  device=device)))
 
         #initialize a starting state
         self.hidden = torch.zeros(num_hidden, requires_grad=True, device=device)
         self.steps = seq_length
-        print(self)
+        
 
     def forward(self, x):
         # Implementation here ...
-        debug = True
+        debug = False
+        step = 0
         #update hidden state
-        input_hidden = torch.matmul(self.w_h, x)
-        hidden_hidden = torch.matmul(self.w_h, self.hidden)
+
+        #get batch size
+        batch_size = x.size()[0]
+        input_dim = x.dim()
+
+        #expand hidden state to batch size
+        hidden_cur = self.hidden.repeat(batch_size,1)
+        print('Before transform: input size: {0}; input dimensions: {1}'.format(x.size(), x.dim()))
+        if input_dim > 2: 
+            cur_input = x[:,step].t().view(-1, batch_size, x.size()[2])
+        else: 
+            cur_input = x[:, step].view(batch_size, 1).t()
         if debug:
+            print('After transform: Input dimension: {0}; Weights in dimension: {1} '.format(cur_input.size(), self.w_in.size()))    
+        input_hidden = torch.matmul(self.w_in, cur_input)
+        hidden_hidden = torch.matmul(self.w_h, hidden_cur.t())
+        if debug:
+            print('INput dimension: {0}'.format(x.size()))
             print("Input to hidden proj: ")
             print(input_hidden.size())
             print("hidden (t-1) to hidden: ")
             print(hidden_hidden.size())
-        self.hidden = nn.functional.tanh(input_hidden + hidden_hidden + self.b_in)
+            print("batch size: %s " % (batch_size))
+        hidden_cur = nn.functional.tanh(input_hidden + hidden_hidden + self.b_in).t()
         
+        if debug: 
+            print('hidden state: {0}; with size: {1}'.format(hidden_cur, hidden_cur.size()))
+            print('w out: {0}'.format(self.w_out.size()))
         #calculate output
-        out = torch.matmul(self.hidden, self.w_out)  + self.b_out
-
+        out = torch.matmul(hidden_cur, self.w_out) + self.b_out.view(1, -1)
+        print("out size {0}".format(out.size()))
+        print('Did one step')
         return out
 
