@@ -60,7 +60,7 @@ class VanillaRNN(nn.Module):
 
         #expand hidden state to batch size
         hidden_cur = self.hidden.repeat(batch_size,1)
-        print('Before transform: input size: {0}; input dimensions: {1}'.format(x.size(), x.dim()))
+        #print('Before transform: input size: {0}; input dimensions: {1}'.format(x.size(), x.dim()))
         if input_dim > 2: 
             cur_input = x[:,step].t().view(-1, batch_size, x.size()[2])
         else: 
@@ -83,7 +83,7 @@ class VanillaRNN(nn.Module):
             print('w out: {0}'.format(self.w_out.size()))
         #calculate output
         out = torch.matmul(hidden_cur, self.w_out) + self.b_out.view(1, -1)
-        print("out size {0}".format(out.size()))
-        print('Did one step')
+        #print("out size {0}".format(out.size()))
+        #print('Did one step')
         return out
 
