@@ -83,16 +83,19 @@ def train(config):
         #reset optimizer
         optimizer.zero_grad()
 
-        ############################################################################
-        # QUESTION: what happens here and why?
-        ############################################################################
-        torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
-        ############################################################################
+        
 
         # Add more code here ...
         #print(batch_inputs.size())
         #put input on target device 
         batch_inputs = batch_inputs.cuda(device)
+        
+        #transform to one-hot
+        if config.input_dim == 10: 
+            batch_inputs = torch.nn.functional.one_hot(batch_inputs.to(torch.int64), config.input_dim)
+            batch_inputs = batch_inputs.to(torch.float)
+            
+
         batch_targets = batch_targets.cuda(device)
         #get prediction, grads and update params
         out = model( batch_inputs )
@@ -100,6 +103,13 @@ def train(config):
         loss = criterion(out, batch_targets)   # (fixme) Your cries for help are getting distracting. I'm trying to finish this master succesfully
         #print(loss)
         loss.backward()
+
+        ############################################################################
+        # QUESTION: what happens here and why?
+        ############################################################################
+        torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
+        ############################################################################
+
         optimizer.step()
 
         accuracy = utils.calc_accuracy(out, batch_targets)  # (fixme) Okay listen: you just gotta be okay with who you are. focues on improving day by day. take baby steps and sometimes take a breath to appreciate how far you have come
@@ -120,8 +130,10 @@ def train(config):
             loss_list.append(loss)
             epochs.append(step)
 
-
-        if (step == config.train_steps) or ((loss - loss_prev) <= config.stop_criterium):
+        
+        loss_change = loss - loss_prev
+        
+        if (step == config.train_steps) or ((loss_change >= -config.stop_criterium) and (loss_change <= 0)):
             # If you receive a PyTorch data-loader error, check this bug report:
             # https://github.com/pytorch/pytorch/pull/9655
             str_save = 'run'
@@ -134,16 +146,29 @@ def train(config):
             test_data_loader = DataLoader(dataset, 1000, num_workers=1) # what is num_worker
 
             for step, (test_input, test_targets) in enumerate(test_data_loader):
+
+                #move data to device
+                test_input = test_input.cuda(device)
+                
+                #conver to one-hot
+                if config.input_dim == 10: 
+                    test_input = torch.nn.functional.one_hot(test_input.to(torch.int64), config.input_dim)
+                    test_input = test_input.to(torch.float)
+
+                test_targets = test_targets.cuda(device)
+
+                #run test forward
                 out = model(test_input)
                 test_accuracy = utils.calc_accuracy(out, test_targets)
                 print('Test accuracy: {}'.format(test_accuracy))
+                test_accuracy = test_accuracy.cpu().numpy()
                 break
 
-            utils.plot_accuracies(loss_list, accuracy_list, test_accuracy, epochs)
+            utils.plot_accuracies(loss_list, accuracy_list, test_accuracy, epochs, str_save=str_save, save_dir='../../../saveData/')
             break
 
         #save as previous loss 
-        loss_prev = loss.copy()
+        loss_prev = loss.clone().detach()
     print('Done training.')
 
 
@@ -166,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument('--train_steps', type=int, default=10000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
-    parser.add_argument('--stop_criterium', type=float, default=0.01, help="Stop criterum if loss change is below this value")
+    parser.add_argument('--stop_criterium', type=float, default=0.0001, help="Stop criterum if loss change is below this value")
     parser.add_argument('--seed', type=float, default=42, help="Random seed for repeatability")
 
 

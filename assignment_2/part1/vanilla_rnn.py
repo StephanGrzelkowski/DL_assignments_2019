@@ -62,7 +62,7 @@ class VanillaRNN(nn.Module):
         hidden_cur = self.hidden.repeat(batch_size,1)
         #print('Before transform: input size: {0}; input dimensions: {1}'.format(x.size(), x.dim()))
         if input_dim > 2: 
-            cur_input = x[:,step].t().view(-1, batch_size, x.size()[2])
+            cur_input = x[:, step].view(batch_size, 10).t()#x[:,step].t().view(-1, batch_size, x.size()[2])
         else: 
             cur_input = x[:, step].view(batch_size, 1).t()
         if debug:
