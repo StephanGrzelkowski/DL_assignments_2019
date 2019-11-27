@@ -49,9 +49,7 @@ class VanillaRNN(nn.Module):
         
 
     def forward(self, x):
-        # Implementation here ...
-        debug = False
-
+        
         #get batch size
         batch_size = x.size()[0]
         input_dim = x.dim()
@@ -65,26 +63,12 @@ class VanillaRNN(nn.Module):
                 cur_input = x[:, step].view(batch_size, 10).t()#x[:,step].t().view(-1, batch_size, x.size()[2])
             else: 
                 cur_input = x[:, step].view(batch_size, 1).t()
-            if debug:
-                print('After transform: Input dimension: {0}; Weights in dimension: {1} '.format(cur_input.size(), self.w_in.size()))    
             input_hidden = torch.matmul(self.w_in, cur_input)
-            hidden_hidden = torch.matmul(self.w_h, hidden_cur.t())
-            if debug:
-                print('Input dimension: {0}'.format(x.size()))
-                print("Input to hidden proj: ")
-                print(input_hidden.size())
-                print("hidden (t-1) to hidden: ")
-                print(hidden_hidden.size())
-                print("batch size: %s " % (batch_size))
+            
             hidden_cur = nn.functional.tanh(input_hidden + hidden_hidden + self.b_in).t()
             
-            if debug: 
-                print('hidden state: {0}; with size: {1}'.format(hidden_cur, hidden_cur.size()))
-                print('w out: {0}'.format(self.w_out.size()))
-        
         #calculate output
         out = torch.matmul(hidden_cur, self.w_out) + self.b_out.view(1, -1)
-        #print("out size {0}".format(out.size()))
-        #print('Did one step')
+
         return out
 

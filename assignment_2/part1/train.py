@@ -137,10 +137,17 @@ def train(config):
             loss_list.append(loss)
             epochs.append(step)
 
+        print(accuracy_list)
+        print(accuracy)
+        if len(accuracy_list) > 5:
+            accuracy_change = (accuracy - torch.tensor(accuracy_list)[-5:]).mean()
+            print('CHange in accuracy: {}'.format(accuracy_change))
+
+        else: 
+            accuracy_change = 1
+
         
-        loss_change = loss - loss_prev
-        
-        if (step == config.train_steps) or ((loss_change >= -config.stop_criterium) and (loss_change <= 0)):
+        if (step == config.train_steps) or (accuracy_change < config.stop_criterium):
             # If you receive a PyTorch data-loader error, check this bug report:
             # https://github.com/pytorch/pytorch/pull/9655
             str_save = 'run'
@@ -172,7 +179,7 @@ def train(config):
                 break
 
             utils.plot_accuracies(loss_list, accuracy_list, test_accuracy, epochs, str_save=str_save, save_dir='../../../saveData/')
-            
+
             break
 
         #save as previous loss 
@@ -199,7 +206,7 @@ if __name__ == "__main__":
     parser.add_argument('--train_steps', type=int, default=10000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
-    parser.add_argument('--stop_criterium', type=float, default=0.0001, help="Stop criterum if loss change is below this value")
+    parser.add_argument('--stop_criterium', type=float, default=0.01, help="Stop criterum if improvement in accuracy over last 5 steps is less than this")
     parser.add_argument('--seed', type=float, default=42, help="Random seed for repeatability")
 
 
