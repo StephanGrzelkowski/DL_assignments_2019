@@ -30,54 +30,83 @@ class LSTM(nn.Module):
         super(LSTM, self).__init__()
         # Initialization here ...
         #init cell state 
-        num_cell = num_hidden
-        self.cell = {}
-        self.cell.state = torch.zeros(num_hidden)
+        self.num_cell = num_hidden
+        self.num_hidden = num_hidden
+        self.device = device
 
-        #hidden layer
-        self.hidden = {}
-        self.hidden.state = torch.zeros(num_hidden)
-        self.hidden.params = {}
-        self.hidden.params['w'] = torch.randn(num_classes, num_hidden)
-        self.hidden.params['b'] = torch.randn(num_classes) 
-        #modulation gate
-        self.modulation_gate = {}
-        self.modulation_gate.params["w_x"] = torch.randn(num_cell, input_dim)
-        self.modulation_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
-        self.modulation_gate.params['b'] = torch.randn(num_cell)
-
-  		#input gate
-        self.input_gate = {}
-        self.input_gate.params["w_x"] = torch.randn(num_cell, input_dim)
-        self.input_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
-        self.input_gate.params['b'] = torch.randn(num_cell)
+        #REGISTER ALL PARAMETERS AND INITIALIZE XAVIER DISTRIBUTION
+        #gate modulation 
+        self.register_parameter('w_gx', nn.Parameter(torch.zeros(self.num_cell, input_dim, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_gx)
+        self.register_parameter('w_gh', nn.Parameter(torch.zeros(self.num_cell, num_hidden, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_gh)
+        self.register_parameter('b_g', nn.Parameter(torch.ones(self.num_cell, 1, device=device)))
+        torch.nn.init.xavier_uniform_(self.b_g)
+        
+        #input gate 
+        self.register_parameter('w_ix', nn.Parameter(torch.zeros(self.num_cell, input_dim, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_ix)
+        self.register_parameter('w_ih', nn.Parameter(torch.zeros(self.num_cell, num_hidden, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_ih)
+        self.register_parameter('b_i', nn.Parameter(torch.ones(self.num_cell, 1, device=device)))
+        torch.nn.init.xavier_uniform_(self.b_i)
+        
   		
   		#forget gate
-        self.forget_gate = {}
-        self.forget_gate.params["w_x"] = torch.randn(num_cell, input_dim)
-        self.forget_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
-        self.forget_gate.params['b'] = torch.randn(num_cell)
+        self.register_parameter('w_fx', nn.Parameter(torch.zeros(self.num_cell, input_dim, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_fx)
+        self.register_parameter('w_fh', nn.Parameter(torch.zeros(self.num_cell, num_hidden, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_fh)
+        self.register_parameter('b_f', nn.Parameter(torch.ones(self.num_cell, 1, device=device)))
+        torch.nn.init.xavier_uniform_(self.b_f)
   		
   		#output gate 
-        self.output_gate = {}
-        self.output_gate.params["w_x"] = torch.randn(num_cell, input_dim)
-        self.output_gate.params["w_h"] = torch.randn(num_cell, num_hidden)
-        self.output_gate.params['b'] = torch.randn(num_cell)
+        self.register_parameter('w_ox', nn.Parameter(torch.zeros(self.num_cell, input_dim, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_ox)
+        self.register_parameter('w_oh', nn.Parameter(torch.zeros(self.num_cell, num_hidden, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_oh)
+        self.register_parameter('b_o', nn.Parameter(torch.ones(self.num_cell, 1, device=device)))
+        torch.nn.init.xavier_uniform_(self.b_o)
   		
+        #out weights and bias 
+        self.register_parameter('w_out', nn.Parameter(torch.zeros(num_classes, num_hidden, device=device)))
+        torch.nn.init.xavier_uniform_(self.w_out)
+        self.register_parameter('b_out', nn.Parameter(torch.ones(num_classes, 1, device=device)))
+        
     def forward(self, x):
-
-        # calculate all the gates
-        g = F.tanh(torch.matmul(self.modulation_gate.params['w_x'],  x) + torch.matmul(self.modulation_gate.params['w_h'], self.hidden.state) + self.modulation_gate.params['b']) 
-        i = F.sigmoid(torch.matmul(self.input_gate.params['w_x'] , x) + torch.matmul(self.input_gate.params['w_h'], self.hidden.state) +  self.input_gate.params['b'])
-        f = F.sigmoid(torch.matmul(self.forget_gate.params['w_x'], x) + torch.matmul(self.forget_gate.params['w_h'], self.hidden.state) +  self.forget_gate.params['b'])
-        o = F.sigmoid(torch.matmul(self.output_gate.params['w_x'], x) + torch.matmul(self.output_gate.params['w_h'], self.hidden.state) + self.output_gate.params['b'])
         
-        #update cell state
-        self.cell.state = g * i + self.cell.state * f
+        #get relevant input dimensions
+        batch_size = x.size()[0]
+        seq_length = x.size()[1]
+        input_dim = x.dim()
         
-        #update hidden state
-        self.hidden.state = F.tanh(self.cell.state) * o 
+        #init hidden and cell state 
+        hidden_state = torch.zeros(self.num_hidden, batch_size, device=self.device)
+        cell_state = torch.zeros(self.num_cell, batch_size, device=self.device)
 
+        for step in range(seq_length):
+            if input_dim > 2:
+
+                cur_input = x[:,step].view(batch_size, 10).t()
+            else: 
+                cur_input = x[:,step].view(batch_size, 1).t()
+
+            # calculate all the gates
+            g = F.tanh(torch.matmul(self.w_gx, cur_input) + torch.matmul(self.w_gh, hidden_state) + self.b_g) 
+            i = F.sigmoid(torch.matmul(self.w_ix, cur_input) + torch.matmul(self.w_ih, hidden_state) +  self.b_i)
+            f = F.sigmoid(torch.matmul(self.w_fx, cur_input) + torch.matmul(self.w_fh, hidden_state) +  self.b_f)            
+            o = F.sigmoid(torch.matmul(self.w_ox, cur_input) + torch.matmul(self.w_oh, hidden_state) + self.b_o)
+            
+            #update cell state
+            cell_state = g * i + cell_state * f
+        
+            #update hidden state
+            hidden_state = F.tanh(cell_state) * o 
+                
         #get output
-        p = self.hidden.params['w'] * self.hidden.state + self.hidden.params['b']
-        out = F.softmax(p)
+        p = torch.matmul(self.w_out, hidden_state) + self.b_out
+        #print('P: {}'.format(p))
+        out = p.t()#F.softmax(p, dim=0).t() # probably need dim here 
+        
+        #print(out)
+        return out

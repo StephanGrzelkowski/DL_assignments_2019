@@ -47,12 +47,20 @@ def train(config):
     # Initialize the device which to run the model on
     device = torch.device(config.device)
 
-    # Initialize the model that we are going to use
-    model = VanillaRNN(config.input_length, 
-                       config.input_dim, 
-                       config.num_hidden,
-                       config.num_classes, 
-                       device)  # fixme
+    if config.model_type == 'RNN':
+        # Initialize the model that we are going to use
+        model = VanillaRNN(config.input_length, 
+                           config.input_dim, 
+                           config.num_hidden,
+                           config.num_classes, 
+                           device)  # fixme
+
+    elif config.model_type == 'LSTM':
+        model = LSTM(config.input_length, 
+                           config.input_dim, 
+                           config.num_hidden,
+                           config.num_classes, 
+                           device) 
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
@@ -84,7 +92,6 @@ def train(config):
         optimizer.zero_grad()
 
         
-
         # Add more code here ...
         #print(batch_inputs.size())
         #put input on target device 
@@ -165,6 +172,7 @@ def train(config):
                 break
 
             utils.plot_accuracies(loss_list, accuracy_list, test_accuracy, epochs, str_save=str_save, save_dir='../../../saveData/')
+            
             break
 
         #save as previous loss 
