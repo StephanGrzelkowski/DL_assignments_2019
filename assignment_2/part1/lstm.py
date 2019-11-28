@@ -106,6 +106,6 @@ class LSTM(nn.Module):
         #get output
         p = torch.matmul(self.w_out, hidden_state) + self.b_out
         
-        out = F.softmax(p, dim=0).t() 
+        out = F.log_softmax(p, dim=0).t() 
 
         return out

@@ -20,19 +20,16 @@ def calc_accuracy(out, targets, one_hot=(True, False)):
 
     return accuracy
 
-def save_results(train_losses, train_accuracies, test_losses, test_accuracies, str_save=None, save_dir=None, FLAGS = None):
+def save_results(train_losses, train_accuracies, test_loss, epochs, str_save=None, save_dir=None, FLAGS = None):
 
-    target_dir = save_dir + 'TrainingResults/' + str_save + '/'
+    target_dir = save_dir + '/TrainingResults/' + str_save + '/'
     if not(os.path.isdir(target_dir)):
         os.mkdir(target_dir)
 
     np.save(target_dir + 'train_losses', train_losses)
     np.save(target_dir + 'train_accuracies', train_accuracies)
-    np.save(target_dir + 'test_losses', test_losses)
-    np.save(target_dir + 'test_accuracies', test_accuracies)
-    str_params = target_dir + 'params.txt'
-    write_params(str_params, FLAGS)
-
+    np.save(target_dir + 'test_losses', test_loss)
+    np.save(target_dir + 'epochs', epochs)
 def plot_accuracies(train_losses, train_accuracies, test_accuracy, epochs, str_save=None, save_dir=None, FLAGS=[]):
 
     f, ax1 = plt.subplots(1, 1)

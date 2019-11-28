@@ -64,11 +64,14 @@ class VanillaRNN(nn.Module):
             else: 
                 cur_input = x[:, step].view(batch_size, 1).t()
             input_hidden = torch.matmul(self.w_in, cur_input)
+            hidden_hidden = torch.matmul(self.w_h, hidden_cur.t())
             
             hidden_cur = nn.functional.tanh(input_hidden + hidden_hidden + self.b_in).t()
             
+           
+        
         #calculate output
-        out = torch.matmul(hidden_cur, self.w_out) + self.b_out.view(1, -1)
+        out = torch.log_softmax(torch.matmul(hidden_cur, self.w_out) + self.b_out.view(1, -1), dim=1)
 
         return out
 

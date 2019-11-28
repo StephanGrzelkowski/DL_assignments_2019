@@ -41,7 +41,12 @@ import utils
 ################################################################################
 debug = False
 def train(config):
+    #set all random seeds cause for some reason i need them 
     np.random.seed(config.seed)
+    torch.manual_seed(config.seed)
+    torch.cuda.manual_seed(config.seed)
+
+
     assert config.model_type in ('RNN', 'LSTM')
 
     # Initialize the device which to run the model on
@@ -137,17 +142,15 @@ def train(config):
             loss_list.append(loss)
             epochs.append(step)
 
-        print(accuracy_list)
-        print(accuracy)
         if len(accuracy_list) > 5:
-            accuracy_change = (accuracy - torch.tensor(accuracy_list)[-5:]).mean()
-            print('CHange in accuracy: {}'.format(accuracy_change))
-
+            accuracy_change = (accuracy - torch.tensor(accuracy_list)[-5:])
+            accuracy_change = accuracy_change.abs().mean()
+            
         else: 
             accuracy_change = 1
 
         
-        if (step == config.train_steps) or (accuracy_change < config.stop_criterium):
+        if (step == config.train_steps) or ((accuracy_change < config.stop_criterium) and (accuracy_change >= 0)):
             # If you receive a PyTorch data-loader error, check this bug report:
             # https://github.com/pytorch/pytorch/pull/9655
             str_save = 'run'
@@ -174,11 +177,13 @@ def train(config):
                 #run test forward
                 out = model(test_input)
                 test_accuracy = utils.calc_accuracy(out, test_targets)
-                print('Test accuracy: {}'.format(test_accuracy))
+                print('Test accuracy: {}, at epoch: {}'.format(test_accuracy, epochs[-1]))
                 test_accuracy = test_accuracy.cpu().numpy()
                 break
-
-            utils.plot_accuracies(loss_list, accuracy_list, test_accuracy, epochs, str_save=str_save, save_dir='../../../saveData/')
+            
+            save_dir = '../../../saveData/'
+            utils.save_results(loss_list, accuracy_list,  test_accuracy, epochs, str_save=str_save, save_dir=save_dir, FLAGS = None)
+            utils.plot_accuracies(loss_list, accuracy_list, test_accuracy, epochs, str_save=str_save, save_dir=save_dir, FLAGS = str_save)
 
             break
 
@@ -206,8 +211,8 @@ if __name__ == "__main__":
     parser.add_argument('--train_steps', type=int, default=10000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
-    parser.add_argument('--stop_criterium', type=float, default=0.01, help="Stop criterum if improvement in accuracy over last 5 steps is less than this")
-    parser.add_argument('--seed', type=float, default=42, help="Random seed for repeatability")
+    parser.add_argument('--stop_criterium', type=float, default=0.001, help="Stop criterum if improvement in accuracy over last 5 steps is less than this")
+    parser.add_argument('--seed', type=int, default=42, help="Random seed for repeatability")
 
 
     config = parser.parse_args()
