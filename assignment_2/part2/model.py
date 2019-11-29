@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import torch.nn as nn
-
+import torch
 
 class TextGenerationModel(nn.Module):
 
@@ -27,7 +27,47 @@ class TextGenerationModel(nn.Module):
 
         super(TextGenerationModel, self).__init__()
         # Initialization here...
+        print('Init model hidden size: {}'.format(lstm_num_hidden))
 
-    def forward(self, x):
-        # Implementation here...
-        pass
+        self.lstm = nn.LSTM( vocabulary_size, 
+            lstm_num_hidden, 
+            lstm_num_layers, 
+            batch_first=True)
+
+        self.fc = nn.Linear(lstm_num_hidden, vocabulary_size)
+    
+        self.to(device)
+
+        self.batch_size = batch_size
+        self.seq_length = seq_length
+        self.vocabulary_size = vocabulary_size
+        self.hidden_size = lstm_num_hidden
+        self.device = device    
+
+    def forward(self, x, temp=1):
+
+        #let hidden and cell default to 0 (by leaving out)
+        h = torch.zeros(2, self.batch_size, self.hidden_size, device=self.device)
+        c = torch.zeros(2, self.batch_size, self.hidden_size, device=self.device)
+
+        out = None 
+        for step in range(self.seq_length):
+            
+            #get current time step 
+            cur_input = x[:, step].view(self.batch_size, 1, self.vocabulary_size)
+
+            
+            #lstm forward 
+            out_lstm, (h, c) = self.lstm(cur_input, (h, c))
+            #linear layer
+            out_linear = self.fc(out_lstm)
+            #softmax
+            out_softmax = torch.log_softmax(out_linear * temp, dim=2) #log cause cross entropy loss
+
+            if out is None: 
+                out = out_softmax
+            else:
+                out = torch.cat((out, out_softmax), 1)
+
+            
+        return out  

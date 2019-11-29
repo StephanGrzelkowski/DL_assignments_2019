@@ -28,8 +28,13 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+import sys
+sys.path.append("..")
+
 from part2.dataset import TextDataset
 from part2.model import TextGenerationModel
+
+
 
 ################################################################################
 
@@ -38,34 +43,70 @@ def train(config):
     # Initialize the device which to run the model on
     device = torch.device(config.device)
 
-    # Initialize the model that we are going to use
-    model = TextGenerationModel( ... )  # fixme
-
+    #get data file directory
+    data_dir = "assets/"
+    file_path = data_dir + config.txt_file
+   
     # Initialize the dataset and data loader (note the +1)
-    dataset = TextDataset( ... )  # fixme
+    dataset = TextDataset( file_path, config.seq_length)  # fixme
     data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
+    vocabulary_size = dataset.vocab_size
+
+     # Initialize the model that we are going to use
+    model = TextGenerationModel(config.batch_size, 
+    config.seq_length, 
+    vocabulary_size,
+    config.lstm_num_hidden, 
+    config.lstm_num_layers, 
+    config.device)  
 
     # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
+    criterion = torch.nn.CrossEntropyLoss()  # fixme
+    optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)  # fixme
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
-
+        
         # Only for time measurement of step through network
         t1 = time.time()
 
         #######################################################
         # Add more code here ...
         #######################################################
+        
+        #transform to one-hot and put on device
+        batch_inputs = torch.nn.functional.one_hot(batch_inputs.to(torch.int64), vocabulary_size)
+        batch_inputs = batch_inputs.to(torch.float).to(device)
 
-        loss = np.inf   # fixme
-        accuracy = 0.0  # fixme
+        batch_targets = batch_targets.to(device).to(torch.int64)
+        
+
+        out = model(batch_inputs)
+        print(out)
+
+        out = out.reshape(-1, vocabulary_size)
+
+        print('targets Size: {}'.format(batch_targets.size()))
+
+        batch_targets = batch_targets.reshape(-1)
+
+        print('Out Size: {}'.format(out.size()))
+        print('targets Size: {}'.format(batch_targets.size()))
+
+        loss = criterion(out, batch_targets)   # fixme
+
+        loss.backward()
+        optimizer.step()
+        
+        print(loss)
+
+        _, predictions = out.max(dim=1)
+        accuracy = utils.calc_accuracy(predictions, batch_targets) # fixme
 
         # Just for time measurement
         t2 = time.time()
         examples_per_second = config.batch_size/float(t2-t1)
 
-        if step % config.print_every == 0:
+        if (step % config.print_every) == 0:
 
             print("[{}] Train Step {:04d}/{:04d}, Batch Size = {}, Examples/Sec = {:.2f}, "
                   "Accuracy = {:.2f}, Loss = {:.3f}".format(
@@ -74,7 +115,7 @@ def train(config):
                     accuracy, loss
             ))
 
-        if step == config.sample_every:
+        if (step % config.sample_every) == 0:
             # Generate some sentences by sampling from the model
             pass
 
@@ -116,6 +157,8 @@ if __name__ == "__main__":
     parser.add_argument('--summary_path', type=str, default="./summaries/", help='Output path for summaries')
     parser.add_argument('--print_every', type=int, default=5, help='How often to print training progress')
     parser.add_argument('--sample_every', type=int, default=100, help='How often to sample from the model')
+
+    parser.add_argument('--device', type=str, default="cuda:0", help='Gpu device for PyTorch')
 
     config = parser.parse_args()
 
