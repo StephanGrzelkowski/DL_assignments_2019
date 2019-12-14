@@ -1,2 +1,4 @@
 .DS_Store
 */.DS_Store
+assignment_3/templates/data*
+assignment_3/templates/datasets*

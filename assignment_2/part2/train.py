@@ -34,8 +34,8 @@ sys.path.append("..")
 from part2.dataset import TextDataset
 from part2.model import TextGenerationModel
 
-
-
+import utils
+import random
 ################################################################################
 
 def train(config):
@@ -63,7 +63,12 @@ def train(config):
     # Setup the loss and optimizer
     criterion = torch.nn.CrossEntropyLoss()  # fixme
     optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)  # fixme
-
+    
+    accuracy_list = []
+    accuracy_list_test = []
+    loss_list = []
+    loss_list_test = []
+    epochs = []
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
         
         # Only for time measurement of step through network
@@ -79,51 +84,65 @@ def train(config):
 
         batch_targets = batch_targets.to(device).to(torch.int64)
         
+        optimizer.zero_grad()
 
         out = model(batch_inputs)
-        print(out)
 
         out = out.reshape(-1, vocabulary_size)
 
-        print('targets Size: {}'.format(batch_targets.size()))
-
         batch_targets = batch_targets.reshape(-1)
-
-        print('Out Size: {}'.format(out.size()))
-        print('targets Size: {}'.format(batch_targets.size()))
 
         loss = criterion(out, batch_targets)   # fixme
 
         loss.backward()
+        torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
         optimizer.step()
         
-        print(loss)
 
-        _, predictions = out.max(dim=1)
-        accuracy = utils.calc_accuracy(predictions, batch_targets) # fixme
-
+        accuracy = utils.calc_accuracy(out, batch_targets) # fixme
+        
         # Just for time measurement
         t2 = time.time()
         examples_per_second = config.batch_size/float(t2-t1)
 
         if (step % config.print_every) == 0:
 
-            print("[{}] Train Step {:04d}/{:04d}, Batch Size = {}, Examples/Sec = {:.2f}, "
+            print("[{}] Train Step {:04d}/{:04f}, Batch Size = {}, Examples/Sec = {:.2f}, "
                   "Accuracy = {:.2f}, Loss = {:.3f}".format(
                     datetime.now().strftime("%Y-%m-%d %H:%M"), step,
                     config.train_steps, config.batch_size, examples_per_second,
-                    accuracy, loss
-            ))
+                    accuracy, loss))
+            accuracy_list.append(accuracy)
+            loss_list.append(loss)
+            epochs.append(step)
 
         if (step % config.sample_every) == 0:
             # Generate some sentences by sampling from the model
-            pass
+            #start with random one-hot integer
+            start_character = random.randint(0, vocabulary_size -1)
+            in_sample = torch.zeros((1, 1, vocabulary_size), device=config.device)
+            in_sample[0,0,start_character] = 1
+            sample = model.sample(in_sample, config.sample_length - 1, config.sample_random, config.temperature)
+            sample = sample.squeeze()
+            print(sample.size())
+            _, res = sample.max(1)
+            print(res)
+            string_sample = dataset.convert_to_string(res.cpu().numpy())
+            print("sample:{}".format(string_sample))
 
         if step == config.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
             # https://github.com/pytorch/pytorch/pull/9655
-            break
+            str_save = 'text_generation'
+            name_run = input('what shall we call this run?')
+            str_save += name_run
+            print(str_save)
 
+            save_dir = '../../../saveData/assignment2_part2'
+            utils.save_results(loss_list, accuracy_list,  None, epochs, str_save=str_save, save_dir=save_dir, FLAGS = None)
+            utils.plot_accuracies(loss_list, accuracy_list, None, epochs, str_save=str_save, save_dir=save_dir, FLAGS = str_save)
+
+            break
     print('Done training.')
 
 
@@ -159,6 +178,10 @@ if __name__ == "__main__":
     parser.add_argument('--sample_every', type=int, default=100, help='How often to sample from the model')
 
     parser.add_argument('--device', type=str, default="cuda:0", help='Gpu device for PyTorch')
+    parser.add_argument('--sample_length', type=int, default=30, help='Target sample length')
+    parser.add_argument('--sample_random', type=int, default=0, help='Random sampling')
+    parser.add_argument('--temperature', type=int, default=1, help='temperature parameter')
+
 
     config = parser.parse_args()
 

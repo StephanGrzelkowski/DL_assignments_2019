@@ -3,6 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 import sys
 import os
+import matplotlib
 def calc_accuracy(out, targets, one_hot=(True, False)):
     #print('Out size: {0}; target size: {1}'.format(out.size(), targets.size()))
     batch_size = out.size()[0]
@@ -28,8 +29,10 @@ def save_results(train_losses, train_accuracies, test_loss, epochs, str_save=Non
 
     np.save(target_dir + 'train_losses', train_losses)
     np.save(target_dir + 'train_accuracies', train_accuracies)
-    np.save(target_dir + 'test_losses', test_loss)
+    if test_loss is not None:
+        np.save(target_dir + 'test_losses', test_loss)
     np.save(target_dir + 'epochs', epochs)
+
 def plot_accuracies(train_losses, train_accuracies, test_accuracy, epochs, str_save=None, save_dir=None, FLAGS=[]):
 
     f, ax1 = plt.subplots(1, 1)
@@ -39,8 +42,8 @@ def plot_accuracies(train_losses, train_accuracies, test_accuracy, epochs, str_s
     ax1.set_ylabel('Accuracy', color=color)
     ax1.plot(epochs, train_accuracies, color=color)
     ax1.tick_params(axis='y', labelcolor=color)
-
-    ax1.plot(epochs[-1], test_accuracy, color='tab:green', marker='D')
+    if test_accuracy is not None:
+        ax1.plot(epochs[-1], test_accuracy, color='tab:green', marker='D')
 
     ax3 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
@@ -63,3 +66,21 @@ def plot_accuracies(train_losses, train_accuracies, test_accuracy, epochs, str_s
     plt.show()
     print('Did plot')
     return
+def bar_graphs(input_lengths, accuracies, title_string):
+    print(input_lengths)
+    print(accuracies)
+    x = np.arange(len(input_lengths))+1
+    f = matplotlib.pyplot.bar(x, accuracies, tick_label=input_lengths )
+    plt.title(title_string)
+    plt.show()
+    
+if __name__ == '__main__':
+    input_length = [5, 10, 21, 40, 81, 160, 321]
+    rnn_accuracies = [1, 1, 1, 0.32, 0.2, 0.2, 0.18]
+
+    bar_graphs(input_length, rnn_accuracies, 'RNN accuracies')
+
+    input_length = [5, 10, 21, 40, 81, 160, 321, 640]
+    lstm_accuracies = [1, 1, 1, 1, 1, 1, 1, 0.1]
+
+    bar_graphs(input_length, lstm_accuracies, 'LSTM accuracies')
