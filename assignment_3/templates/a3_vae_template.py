@@ -45,16 +45,16 @@ class Decoder(nn.Module):
         #again output size is MNIST 
         self.out = nn.Linear(hidden_dim, 28*28)
 
-    def forward(self, input):
+    def forward(self, input_):
         """
         Perform forward pass of encoder.
 
         Returns mean with shape [batch_size, 784].
         """
 
-        hidden = self.fc(input).tanh()
+        hidden = self.fc(input_).relu()
 
-        mean = self.out(idden).sigmoid()
+        mean = self.out(hidden).sigmoid()
 
         return mean
 
@@ -67,7 +67,7 @@ class VAE(nn.Module):
         self.z_dim = z_dim
         self.encoder = Encoder(hidden_dim, z_dim)
         self.decoder = Decoder(hidden_dim, z_dim)
-        self.loss_bce = nn.BCELoss(reduction='None')
+        self.loss_bce = nn.BCELoss(reduction='none')
 
     def forward(self, input_):
         """
@@ -82,9 +82,10 @@ class VAE(nn.Module):
 
         #create a sample from latent space 
         sample = torch.randn(*z_mean.size())
+        sample = sample.to(device)
 
         #we wanna do the reparameterization trick here 
-        z_std = (z_std / 2).exp()
+        z_std = z_std.exp().sqrt()
         sample = sample * z_std + z_mean
 
         #run the decoding step to get mean for bernoulli of out
@@ -92,14 +93,12 @@ class VAE(nn.Module):
 
         #now we can calculate the los terms
 
-        l_recon = self.loss_bce(out, input_)
-        l_kl = 0.5 * (z_std.exp() 
-            + z_mean**2 
-            - 1 
-            - z_std).sum()
+        l_recon = self.loss_bce(out, input_).sum()
+       
+        l_kl = 0.5 * (z_mean**2  + (z_std ** 2).log() -1 ).sum()
 
         #add up with averaging over batches
-        average_negative_elbo = (1 / batch_size) * (l_recon + l_kl)
+        average_negative_elbo = (l_recon + l_kl) / batch_size
         
         return average_negative_elbo
 
@@ -111,13 +110,14 @@ class VAE(nn.Module):
         """
         
         #get random samples 
-        sample = torch.randn(n_samples)
+        sample = torch.randn((n_samples, self.z_dim))
+        sample = sample.to(device)
 
         #we wanna do the reparameterization trick here 
         im_means = self.decoder(sample)
         
-        samples_ims = torch.bernoulli(im_means).view(28,28)
-
+        sampled_ims = torch.bernoulli(im_means).view(-1, 28,28)
+        
         return sampled_ims, im_means
 
 
@@ -128,16 +128,20 @@ def epoch_iter(model, data, optimizer):
 
     Returns the average elbo for the complete epoch.
     """
-    optimizer.zero_grad()
-
-    batch_size = data[0]
-    input_ = data[1].view(-1, 28*28)
-
-
-    average_epoch_elbo = model(data)
     
-    average_epoch_elbo.backward()
-    optimizer.step()
+    for enum, input_ in enumerate(data):
+        
+        input_ = input_.view(-1, 28*28)
+        
+        input_ = input_.to(device)
+
+        optimizer.zero_grad()
+
+        average_epoch_elbo = model(input_)
+
+        if model.training:
+            average_epoch_elbo.backward()
+            optimizer.step()
 
     return average_epoch_elbo
 
@@ -171,6 +175,9 @@ def save_elbo_plot(train_curve, val_curve, filename):
 def main():
     data = bmnist()[:2]  # ignore test split
     model = VAE(z_dim=ARGS.zdim)
+   
+    model = model.to(device)
+
     optimizer = torch.optim.Adam(model.parameters())
 
     train_curve, val_curve = [], []
@@ -185,7 +192,19 @@ def main():
         #  Add functionality to plot samples from model during training.
         #  You can use the make_grid functioanlity that is already imported.
         # --------------------------------------------------------------------
-
+        if (epoch % ARGS.eval_interval) == 0 : 
+            n_samples = 4*4
+            img_samples, im_means = model.sample(n_samples)
+            im_means = im_means.view(-1,28,28)
+            img = im_means.detach().cpu().numpy()
+            
+            for i in range(n_samples):
+                plt.subplot(4,4,i+1)
+                fig = plt.imshow(img[i,:,:], cmap='Greys')
+                fig.axes.get_xaxis().set_visible(False)
+                fig.axes.get_yaxis().set_visible(False)
+            str_save = 'figures/VAE_samples_epoch_' + str(epoch)
+            plt.savefig(str_save)
     # --------------------------------------------------------------------
     #  Add functionality to plot plot the learned data manifold after
     #  if required (i.e., if zdim == 2). You can use the make_grid
@@ -201,7 +220,14 @@ if __name__ == "__main__":
                         help='max number of epochs')
     parser.add_argument('--zdim', default=20, type=int,
                         help='dimensionality of latent space')
+    parser.add_argument('--device', type=str, default="cuda:0", 
+                        help="Training device 'cpu' or 'cuda:0'")
+    parser.add_argument('--eval_interval', type=int, default=10, 
+                        help="Training device 'cpu' or 'cuda:0'")
+
 
     ARGS = parser.parse_args()
 
+    device = torch.device(ARGS.device)
+    
     main()
