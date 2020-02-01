@@ -27,7 +27,7 @@ class Encoder(nn.Module):
         """
 
         #with relu nonlinearity
-        hidden_state = self.fc(input).tanh()
+        hidden_state = self.fc(input).relu()
 
         mean = self.means(hidden_state)
         std = self.stds(hidden_state)
@@ -43,7 +43,7 @@ class Decoder(nn.Module):
         #mirrors the encoder
         self.fc = nn.Linear(z_dim, hidden_dim)
         #again output size is MNIST 
-        self.out = nn.Linear(hidden_dim, 28*28)
+        self.rec = nn.Linear(hidden_dim, 28*28)
 
     def forward(self, input_):
         """
@@ -54,7 +54,7 @@ class Decoder(nn.Module):
 
         hidden = self.fc(input_).relu()
 
-        mean = self.out(hidden).sigmoid()
+        mean = self.rec(hidden).sigmoid()
 
         return mean
 
@@ -79,14 +79,14 @@ class VAE(nn.Module):
 
         #get latent variables
         z_mean, z_std = self.encoder(input_)
-
+        
         #create a sample from latent space 
         sample = torch.randn(*z_mean.size())
         sample = sample.to(device)
 
         #we wanna do the reparameterization trick here 
-        z_std = z_std.exp().sqrt()
-        sample = sample * z_std + z_mean
+        
+        sample = sample * (z_std * 0.5).exp() + z_mean
 
         #run the decoding step to get mean for bernoulli of out
         out = self.decoder(sample)
@@ -95,10 +95,13 @@ class VAE(nn.Module):
 
         l_recon = self.loss_bce(out, input_).sum()
        
-        l_kl = 0.5 * (z_mean**2  + (z_std ** 2).log() -1 ).sum()
+        l_kl = (z_mean**2  
+            + z_std.exp() 
+            - z_std 
+            - 1 ).sum() * 0.5
 
         #add up with averaging over batches
-        average_negative_elbo = (l_recon + l_kl) / batch_size
+        average_negative_elbo =  (l_recon + l_kl) / batch_size
         
         return average_negative_elbo
 
@@ -132,7 +135,6 @@ def epoch_iter(model, data, optimizer):
     for enum, input_ in enumerate(data):
         
         input_ = input_.view(-1, 28*28)
-        
         input_ = input_.to(device)
 
         optimizer.zero_grad()
